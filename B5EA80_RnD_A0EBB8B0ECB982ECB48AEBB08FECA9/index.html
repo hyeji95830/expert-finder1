@@ -227,7 +227,7 @@ function addLog(msg,cls=''){state.logs.push({msg,cls});renderLogs()}
 function renderLogs(){const l=$('#log');if(!l)return;l.innerHTML=state.logs.map(x=>`<div class="${x.cls}">▸ ${esc(x.msg)}</div>`).join('');l.scrollTop=l.scrollHeight}
 function progress(p){const b=$('#bar');if(b)b.style.width=Math.max(0,Math.min(100,p))+'%'}
 function apiSearchUrl(keyword,from,to,per){
-  const u=new URL('/api/openalex/works');
+  const u=new URL('/api/openalex/works', window.location.origin);
   u.searchParams.set('search',keyword);
   u.searchParams.set('filter',`from_publication_date:${from},to_publication_date:${to}`);
   u.searchParams.set('sort','relevance_score:desc');
