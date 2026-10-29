@@ -206,7 +206,7 @@ function view3(){return `<div class="dochead"><h1>STEP 4 · 연구자 통합 및
 <div class="alert"><b>검색 결과의 논문·저자·소속·피인용 정보는 OpenAlex에서 실시간 조회한 실제 데이터입니다.</b><br>국내 연구자는 OpenAlex에 등록된 한글 대체명이 확인되는 경우 한글명을 우선 표시합니다.<br>Expert Score는 후보 간 비교를 위한 프로토타입 정량지표로, 관련논문 40 + 최근성 25 + 지속성 15 + 인용영향력 10 + 키워드 커버리지 10으로 구성됩니다.</div>
 ${resultTable()}
 <div class="foot"><button class="btn secondary" id="back3">← 키워드 수정</button><button class="btn" id="next3">최종 Pool 검토 →</button></div>`}
-function view4(){const n=Math.min(state.project.count,state.candidates.length);return `<div class="dochead"><h1>STEP 5 · 전문가 후보 Pool</h1><p>상위 ${n}명을 기본 SELECTED로 지정했습니다. 전문가명을 누르면 실제 OpenAlex 근거 논문과 연구자 프로필을 확인할 수 있습니다.</p></div>
+function view4(){const n=Math.min(state.project.count,state.candidates.length);return `<div class="dochead"><h1>STEP 5 · 전문가 후보 Pool</h1><p>요청 ${state.project.count}명 중 조건 충족 ${state.stats.passed}명 · 상위 ${n}명을 SELECTED로 지정했습니다. 전문가명을 누르면 실제 OpenAlex 근거 논문과 연구자 프로필을 확인할 수 있습니다.</p></div>
 <div class="summary"><div><div class="num">${state.stats.works}</div><div class="lbl">검색 논문</div></div><div><div class="num">${state.stats.authors}</div><div class="lbl">후보 연구자</div></div><div><div class="num">${state.candidates.filter(x=>x.status==='SELECTED').length}</div><div class="lbl">SELECTED</div></div><div><div class="num">${state.keywords.length}</div><div class="lbl">검색 키워드</div></div></div>${resultTable()}
 <div class="foot"><button class="btn secondary" id="back4">← 검색조건 변경</button><div><button class="btn secondary" id="csv">CSV 저장</button> <button class="btn" id="xlsx">Excel 저장</button></div></div>`}
 function resultTable(){return `<div class="tablewrap"><table class="table"><thead><tr><th>순위</th><th>전문가</th><th>소속</th><th>국가</th><th>관련논문</th><th>관련기간</th><th>관련인용</th><th>매칭 키워드</th><th>Score</th><th>상태</th></tr></thead><tbody>${state.candidates.map((c,i)=>`<tr><td>${i+1}</td><td class="name" data-open="${i}">${esc(c.name)}${c.name_original?`<div class="muted" style="font-size:10px;margin-top:3px">${esc(c.name_original)}</div>`:""}</td><td>${esc(c.institution||'-')}</td><td>${esc(c.country||'-')}</td><td>${c.relevant_publications}</td><td>${c.first_year||'-'}–${c.last_year||'-'}</td><td>${c.citations}</td><td>${esc([...c.keywords].slice(0,3).join(', '))}</td><td class="score">${c.score}</td><td><span class="tag ${c.status==='SELECTED'?'selected':'candidate'}">${c.status}</span></td></tr>`).join('')}</tbody></table></div>`}
@@ -228,12 +228,13 @@ if(state.step===4){bindOpen();$('#back4').onclick=()=>setStep(0);$('#csv').oncli
 function addLog(msg,cls=''){state.logs.push({msg,cls});renderLogs()}
 function renderLogs(){const l=$('#log');if(!l)return;l.innerHTML=state.logs.map(x=>`<div class="${x.cls}">▸ ${esc(x.msg)}</div>`).join('');l.scrollTop=l.scrollHeight}
 function progress(p){const b=$('#bar');if(b)b.style.width=Math.max(0,Math.min(100,p))+'%'}
-function apiSearchUrl(keyword,from,to,per){
+function apiSearchUrl(keyword,from,to,per,page=1){
   const u=new URL('/api/openalex/works', window.location.origin);
   u.searchParams.set('search',keyword);
   u.searchParams.set('filter',`from_publication_date:${from},to_publication_date:${to}`);
   u.searchParams.set('sort','relevance_score:desc');
   u.searchParams.set('per_page',String(Math.min(100,per)));
+  u.searchParams.set('page',String(page));
   u.searchParams.set('select','id,title,display_name,publication_year,publication_date,cited_by_count,doi,authorships,primary_topic');
   if(state.apiKey)u.searchParams.set('api_key',state.apiKey);
   return u.toString();
@@ -272,22 +273,49 @@ async function startSearch(){
 
   const searchKeywords=state.keywords.slice(0,5);
   if(state.keywords.length>5)addLog('요청 한도 보호를 위해 상위 5개 키워드만 검색합니다.');
-  for(let i=0;i<searchKeywords.length;i++){
-    const kw=searchKeywords[i];
-    addLog(`[${kw}] 논문 검색 중…`);
-    try{
-      const j=await fetchJSON(apiSearchUrl(kw,from,to,state.project.perKeyword));
-      const rs=j.results||[];
-      success++;
-      const total=j.meta?.count!=null?Number(j.meta.count).toLocaleString():'-';
-      addLog(`[${kw}] 실제 논문 ${rs.length}건 수집 · 전체 매칭 ${total}건`,'ok');
-      rs.forEach(w=>ingestWork(w,kw));
-    }catch(e){
-      addLog(`[${kw}] 검색 실패: ${e.message}`,'err');
-      if([400,401,402,403,429].includes(e.status)){fatalError=e.message;addLog('API 인증 또는 요청 한도 문제로 추가 검색을 중단합니다.','err');break;}
+  // 국내 소속 조건에 따라 전체 저자 수와 적격 연구자 수는 크게 다를 수 있습니다.
+  // 1페이지 검색 후 적격 인원이 부족하면 실제 OpenAlex 논문을 추가 페이지에서 수집합니다.
+  const targetCount=Number(state.project.count)||50;
+  const desiredPool=Math.max(targetCount,Math.ceil(targetCount*1.3));
+  const maxPagesPerKeyword=5; // 키워드별 최대 5페이지. API 사용량 보호
+  const nextPages=searchKeywords.map(()=>1);
+  const exhausted=searchKeywords.map(()=>false);
+  const totals=searchKeywords.map(()=>Infinity);
+  let rateLimited=false;
+  for(let round=1;round<=maxPagesPerKeyword;round++){
+    for(let i=0;i<searchKeywords.length;i++){
+      if(exhausted[i])continue;
+      const kw=searchKeywords[i],page=nextPages[i];
+      addLog(`[${kw}] 논문 검색 ${page}페이지 중…`);
+      try{
+        const j=await fetchJSON(apiSearchUrl(kw,from,to,state.project.perKeyword,page));
+        const rs=j.results||[];
+        success++;
+        totals[i]=Number.isFinite(Number(j.meta?.count))?Number(j.meta.count):Infinity;
+        addLog(`[${kw}] ${page}페이지 실제 논문 ${rs.length}편 수집`,'ok');
+        rs.forEach(w=>ingestWork(w,kw));
+        nextPages[i]++;
+        if(!rs.length || page*state.project.perKeyword>=totals[i] || rs.length<state.project.perKeyword)exhausted[i]=true;
+      }catch(e){
+        addLog(`[${kw}] ${page}페이지 실패: ${e.message}`,'err');
+        exhausted[i]=true;
+        if([400,401,402,403,429].includes(e.status)){
+          fatalError=e.message;
+          addLog('OpenAlex 인증·사용량 제한으로 추가 검색을 중단합니다.','err');
+          rateLimited=true;break;
+        }
+      }
+      await new Promise(r=>setTimeout(r,450));
     }
-    progress((i+1)/searchKeywords.length*72);
-    await new Promise(r=>setTimeout(r,1100));
+    // 매 라운드마다 실제 저자·논문을 기준으로 필터 통과 인원을 다시 계산합니다.
+    if(state.works.size){aggregate();addLog(`현재 ${state.works.size}편 · 전체 저자 ${state.authors.size}명 · 조건 충족 ${state.stats.passed}명 (목표 ${targetCount}명)`,'ok');}
+    progress(Math.min(75,Math.round(round/maxPagesPerKeyword*75)));
+    if(state.stats.passed>=desiredPool){addLog(`조건 충족 연구자 ${state.stats.passed}명 확보 · 추가 검색 종료`,'ok');break;}
+    if(exhausted.every(Boolean)||rateLimited)break;
+    addLog(`선정 가능 인원이 목표보다 부족하여 추가 논문을 검색합니다. (${round+1}/${maxPagesPerKeyword}차)`);
+  }
+  if(state.stats.passed<targetCount && success){
+    addLog(`목표 ${targetCount}명 중 실제 조건 충족 ${state.stats.passed}명만 확보했습니다. 가상 인원은 추가하지 않습니다.`,'err');
   }
 
   if(!success || state.works.size===0){
