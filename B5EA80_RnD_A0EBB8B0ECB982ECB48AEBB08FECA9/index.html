@@ -63,7 +63,8 @@ function restoreSession(){
     if(s.project)state.project={...state.project,...s.project};
     if(Array.isArray(s.keywords))state.keywords=s.keywords;if(typeof s.apiKey==='string')state.apiKey=s.apiKey;
     if(typeof s.keywordSourceTopic==='string')state.keywordSourceTopic=s.keywordSourceTopic;
-    if(Number.isInteger(s.step))state.step=s.step;
+    // 새 접속 시 이전 진행단계는 복원하지 않음
+    state.step=0;
     return true;
   }catch(e){return false}
 }
@@ -199,7 +200,7 @@ function view1(){return `<div class="dochead"><h1>STEP 2 · 검색 키워드 검
 <div class="alert">한국어만 입력하면 OpenAlex 검색 성능이 낮아질 수 있습니다. 가능하면 실제 학계에서 사용하는 <b>영문 학술용어</b>를 4~8개 정도 사용하는 것이 좋습니다.</div>
 <div class="alert" style="margin-top:14px"><b>실제 데이터 검색</b> · 선택한 키워드를 OpenAlex에서 각각 검색하고 실제 논문과 저자를 기반으로 전문가 후보를 구성합니다.</div>
 <div class="foot"><button class="btn secondary" id="back1">← 입력 수정</button><div><button class="btn" id="demoSearch">OpenAlex 실제 검색 →</button></div></div>`}
-function view2(){return `<div class="dochead"><h1>STEP 3 · OpenAlex 실제 검색</h1><p>선택한 키워드를 개별 검색하여 논문과 연구자를 수집합니다.</p></div><div class="progress"><div class="bar" id="bar"></div></div><div class="log" id="log"></div><div id="retryArea"></div>`}
+function view2(){return `<div class="dochead"><h1>STEP 3 · OpenAlex 실제 검색</h1><p>선택한 키워드를 개별 검색하여 논문과 연구자를 수집합니다.</p></div><div class="progress"><div class="bar" id="bar"></div></div><div class="log" id="log"></div><div id="retryArea"></div><div class="foot"><button class="btn secondary" id="back2">← 키워드 검토로 돌아가기</button></div>`}
 function view3(){return `<div class="dochead"><h1>STEP 4 · 연구자 통합 및 점수화</h1><p>OpenAlex Author ID 기준으로 저자를 합치고, 관련 실적을 기준으로 후보를 평가했습니다.</p></div>
 <div class="summary"><div><div class="num">${state.stats.works}</div><div class="lbl">중복제거 논문</div></div><div><div class="num">${state.stats.authors}</div><div class="lbl">추출 저자</div></div><div><div class="num">${state.stats.passed}</div><div class="lbl">1차 필터 통과</div></div><div><div class="num">${state.candidates.length}</div><div class="lbl">정렬 후보</div></div></div>
 <div class="alert"><b>검색 결과의 논문·저자·소속·피인용 정보는 OpenAlex에서 실시간 조회한 실제 데이터입니다.</b><br>국내 연구자는 OpenAlex에 등록된 한글 대체명이 확인되는 경우 한글명을 우선 표시합니다.<br>Expert Score는 후보 간 비교를 위한 프로토타입 정량지표로, 관련논문 40 + 최근성 25 + 지속성 15 + 인용영향력 10 + 키워드 커버리지 10으로 구성됩니다.</div>
@@ -220,6 +221,7 @@ if(state.keywordSourceTopic!==normalizedTopic){
 if(!state.keywords.length)state.keywords=[normalizedTopic];
 setStep(1)}}
 if(state.step===1){$$('.kwinput').forEach(x=>x.oninput=e=>{state.keywords[+e.target.dataset.i]=e.target.value;saveSession()});$$('[data-del]').forEach(b=>b.onclick=()=>{state.keywords.splice(+b.dataset.del,1);saveSession();render()});$('#addkw').onclick=()=>{state.keywords.push('');saveSession();render()};const rg=$('#regenkw');if(rg)rg.onclick=()=>{state.keywords=suggestKeywords(state.project.topic);state.keywordSourceTopic=state.project.topic.trim();saveSession();render()};$('#back1').onclick=()=>setStep(0);const ds=$('#demoSearch');if(ds)ds.onclick=()=>startSearch()}
+if(state.step===2){const back=$('#back2');if(back)back.onclick=()=>{setPendingSearch(false);setStep(1)}}
 if(state.step===3){bindOpen();$('#back3').onclick=()=>setStep(1);$('#next3').onclick=()=>setStep(4)}
 if(state.step===4){bindOpen();$('#back4').onclick=()=>setStep(0);$('#csv').onclick=exportCSV;$('#xlsx').onclick=exportExcel}
 }
@@ -325,15 +327,10 @@ function exportCSV(){const rows=exportRows();if(!rows.length)return;const hs=Obj
 function exportExcel(){if(window.XLSX){const ws=XLSX.utils.json_to_sheet(exportRows());const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'전문가Pool');XLSX.writeFile(wb,(state.project.project||'전문가Pool')+'_전문가후보.xlsx')}else{exportCSV();alert('Excel 라이브러리를 불러오지 못해 CSV로 저장했습니다.')}}
 const s=document.createElement('script');s.src='https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';s.async=true;document.head.appendChild(s);
 restoreSession();
+// 이전 검색이 중단되어도 접속할 때 자동 재실행하지 않음
+state.step=0;
+setPendingSearch(false);
 render();
-if(hasPendingSearch() && Array.isArray(state.keywords) && state.keywords.filter(Boolean).length){
-  setTimeout(()=>{
-    state.step=2;
-    saveSession({step:2});
-    render();
-    startSearch();
-  },700);
-}
 })();
 </script>
 
