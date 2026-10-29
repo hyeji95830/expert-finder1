@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>국가 R&D 전문가 Pool Finder · Demo MVP</title>
+<style>
+:root{
+  --navy-950:#0a1930; --navy-900:#0f2242; --navy-800:#173463; --blue:#20488c;
+  --gold:#ad8a4d; --paper:#f6f4ee; --paper2:#efece2; --white:#fff;
+  --ink:#1b2230; --muted:#5a6476; --line:#d8d2bf; --green:#3c6e4a; --red:#9c3b3b;
+}
+*{box-sizing:border-box}
+body{margin:0;background:#e9e6dc;color:var(--ink);font-family:Pretendard,"Noto Sans KR",Arial,sans-serif}
+.app{max-width:1450px;margin:0 auto;min-height:100vh;background:var(--paper);box-shadow:0 0 24px rgba(0,0,0,.08)}
+.header{background:var(--navy-950);color:#eee9da;padding:20px 28px;border-bottom:3px solid var(--gold);display:flex;gap:15px;align-items:center}
+.seal{width:46px;height:46px;border:2px solid var(--gold);border-radius:50%;display:flex;align-items:center;justify-content:center;color:var(--gold);font-weight:700;font-family:Georgia,serif}
+.title{font-family:Georgia,"Noto Serif KR",serif;font-size:21px;font-weight:700}.sub{font-size:12px;color:#9eacc5;margin-top:3px}.badge{margin-left:auto;border:1px solid var(--gold);padding:4px 9px;color:var(--gold);font-size:11px}
+.layout{display:grid;grid-template-columns:220px 1fr;min-height:760px}.rail{background:var(--navy-900);padding:22px 0;color:#c8d0df}.step{padding:12px 18px;border-left:3px solid transparent;opacity:.52;font-size:12.5px}.step.active{opacity:1;border-left-color:var(--gold);background:rgba(255,255,255,.05);font-weight:700}.step.done{opacity:.9}.step b{display:inline-flex;width:22px;height:22px;border:1px solid #667795;border-radius:50%;align-items:center;justify-content:center;margin-right:8px;font-size:10px}.step.active b,.step.done b{border-color:var(--gold);color:var(--gold)}
+.main{padding:30px 34px;overflow:auto}.dochead{padding-bottom:12px;border-bottom:2px solid var(--ink);margin-bottom:20px}.dochead h1{font-family:Georgia,"Noto Serif KR",serif;font-size:20px;margin:0 0 5px}.dochead p{margin:0;color:var(--muted);font-size:12px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:15px}.field{margin-bottom:16px}.field label{display:block;font-size:12.5px;font-weight:700;color:var(--navy-900);margin-bottom:6px}.hint{font-weight:400;color:var(--muted);font-size:11px;margin-left:5px}input,textarea,select{width:100%;padding:10px 11px;border:1px solid var(--line);background:#fff;font:inherit;font-size:13px;border-radius:3px}textarea{min-height:90px;resize:vertical}.btn{border:0;background:var(--navy-900);color:#fff;padding:11px 18px;border-radius:3px;font-weight:700;cursor:pointer}.btn.secondary{background:#fff;color:var(--navy-900);border:1px solid var(--navy-900)}.btn.small{padding:7px 11px;font-size:11.5px}.btn:disabled{opacity:.45;cursor:not-allowed}.foot{display:flex;justify-content:space-between;gap:12px;border-top:1px solid var(--line);padding-top:18px;margin-top:22px}
+.alert{border-left:3px solid var(--gold);background:#fbf5e8;padding:10px 13px;margin:12px 0;font-size:12px}.alert.red{border-left-color:var(--red);background:#fbeded}.alert.green{border-left-color:var(--green);background:#edf6ef}.chips{display:flex;flex-wrap:wrap;gap:7px}.chip{padding:6px 10px;border:1px solid var(--line);background:#fff;border-radius:14px;font-size:12px;cursor:pointer}.chip.on{background:var(--navy-900);color:#fff;border-color:var(--navy-900)}
+.keywordbox{border:1px solid var(--line);background:#fff;padding:15px;border-radius:3px}.kwrow{display:flex;gap:8px;align-items:center;margin:7px 0}.kwrow input{flex:1}.kwrow button{width:34px;height:34px;border:1px solid var(--line);background:#fff;cursor:pointer}.addkw{margin-top:8px}
+.log{background:var(--navy-950);color:#b9c4dc;padding:14px;font-family:Consolas,monospace;font-size:11.5px;border-radius:3px;max-height:300px;overflow:auto}.log div{margin:3px 0}.ok{color:#8fd0a0}.warn{color:#e0b96a}.err{color:#f0a0a0}
+.summary{display:grid;grid-template-columns:repeat(4,1fr);border:1px solid var(--line);background:#fff;margin-bottom:18px}.summary>div{text-align:center;padding:15px;border-right:1px solid var(--line)}.summary>div:last-child{border-right:0}.num{font-size:24px;font-weight:800;color:var(--navy-900);font-family:Consolas,monospace}.lbl{font-size:11px;color:var(--muted)}
+.tablewrap{overflow:auto;border:1px solid var(--line);background:#fff}.table{width:100%;border-collapse:collapse;font-size:12px;min-width:1050px}.table th{background:var(--navy-900);color:#eee9da;text-align:left;padding:9px 10px}.table td{padding:9px 10px;border-bottom:1px solid #e8e3d6;vertical-align:top}.table tr:hover td{background:#f4f1e8}.name{font-weight:700;color:var(--navy-900);cursor:pointer}.score{font-family:Consolas,monospace;font-weight:800}.tag{display:inline-block;padding:2px 8px;border-radius:10px;font-size:10.5px}.selected{background:#dcefe1;color:var(--green)}.candidate{background:#edf0f6;color:var(--navy-800)}
+.progress{height:9px;background:#ddd8c9;border-radius:10px;overflow:hidden;margin:14px 0}.bar{height:100%;width:0;background:var(--navy-800);transition:width .25s}.muted{color:var(--muted)}
+.overlay{display:none;position:fixed;inset:0;background:rgba(10,20,40,.45);z-index:20}.panel{position:fixed;right:-520px;top:0;width:500px;max-width:94vw;height:100vh;background:#fff;z-index:21;transition:.25s;overflow:auto;box-shadow:-5px 0 20px rgba(0,0,0,.2)}.overlay.open{display:block}.panel.open{right:0}.panelhead{background:var(--navy-950);color:#fff;padding:22px;border-bottom:3px solid var(--gold)}.panelbody{padding:20px}.close{float:right;background:none;border:0;color:#fff;font-size:20px;cursor:pointer}.kv{display:flex;justify-content:space-between;gap:20px;border-bottom:1px dashed #ddd;padding:7px 0;font-size:12px}.section{font-family:Georgia,"Noto Serif KR",serif;font-weight:700;color:var(--navy-900);margin:18px 0 7px;padding-bottom:5px;border-bottom:1px solid var(--line)}.paper{padding:8px 0;border-bottom:1px solid #eee;font-size:12px}.paper a{color:var(--blue)}
+@media(max-width:850px){.layout{grid-template-columns:1fr}.rail{display:none}.main{padding:20px}.grid2,.summary{grid-template-columns:1fr}.summary>div{border-right:0;border-bottom:1px solid var(--line)}}
+</style>
+</head>
+<body>
+
+<div class="app">
+  <div class="header"><div class="seal">R&D</div><div><div class="title">국가 R&D 전문가 Pool Finder</div><div class="sub">OpenAlex 실제 학술데이터 기반 전문가 탐색</div></div><div class="badge">OPENALEX LIVE</div></div>
+  <div class="layout"><div class="rail" id="rail"></div><main class="main" id="main"></main></div>
+</div>
+<div class="overlay" id="overlay"></div><aside class="panel" id="panel"></aside>
+<script>
+(()=>{
+const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
+const CURRENT_YEAR=new Date().getFullYear();
+const STEPS=['검색조건 입력','검색 키워드 검토','OpenAlex 실제 검색','연구자 통합·점수화','전문가 Pool 검토'];
+const state={step:0,project:{topic:'',project:'',period:5,count:20,scope:'KR',minPub:1,perKeyword:50},keywords:[],keywordSourceTopic:'',works:new Map(),authors:new Map(),candidates:[],logs:[],stats:{works:0,authors:0,passed:0},running:false};
+const SESSION_KEY='rd_expert_pool_live_v2';
+function saveSession(extra={}){
+  try{
+    const payload={
+      project:state.project,
+      keywords:state.keywords,apiKey:state.apiKey||'',
+      keywordSourceTopic:state.keywordSourceTopic,
+      step:state.step,
+      ...extra
+    };
+    localStorage.setItem(SESSION_KEY,JSON.stringify(payload));
+  }catch(e){}
+}
+function restoreSession(){
+  try{
+    const raw=localStorage.getItem(SESSION_KEY);
+    if(!raw)return false;
+    const s=JSON.parse(raw);
+    if(s.project)state.project={...state.project,...s.project};
+    if(Array.isArray(s.keywords))state.keywords=s.keywords;if(typeof s.apiKey==='string')state.apiKey=s.apiKey;
+    if(typeof s.keywordSourceTopic==='string')state.keywordSourceTopic=s.keywordSourceTopic;
+    if(Number.isInteger(s.step))state.step=s.step;
+    return true;
+  }catch(e){return false}
+}
+function setPendingSearch(v){
+  try{localStorage.setItem(SESSION_KEY+'_pending',v?'1':'0')}catch(e){}
+}
+function hasPendingSearch(){
+  try{return localStorage.getItem(SESSION_KEY+'_pending')==='1'}catch(e){return false}
+}
+function hasHangul(s){return /[가-힣]/.test(String(s||''))}
+function chooseKoreanName(authorDetail,fallback){
+  const candidates=[
+    authorDetail?.display_name,
+    ...(authorDetail?.display_name_alternatives||[]),
+    ...(authorDetail?.raw_author_names||[])
+  ].filter(Boolean);
+  return candidates.find(hasHangul)||fallback;
+}
+async function enrichKoreanNames(){
+  const targets=state.candidates.filter(c=>c.country==='KR' && c.id).slice(0,8);
+  if(!targets.length)return;
+  addLog(`국내 연구자 ${targets.length}명의 한글 이름 표기 확인 중…`);
+  for(let i=0;i<targets.length;i+=5){
+    const chunk=targets.slice(i,i+5);
+    await Promise.all(chunk.map(async c=>{
+      try{
+        const aid=c.id.split('/').pop();
+        const u=`/api/openalex/authors/${aid}?select=id,display_name,display_name_alternatives${state.apiKey?'&api_key='+encodeURIComponent(state.apiKey):''}`;
+        const d=await fetchJSON(u);
+        const ko=chooseKoreanName(d,c.name);
+        if(ko && ko!==c.name && hasHangul(ko)){
+          c.name_original=c.name;
+          c.name=ko;
+        }
+      }catch(e){}
+    }));
+    await new Promise(r=>setTimeout(r,200));
+  }
+  const converted=targets.filter(c=>hasHangul(c.name)).length;
+  addLog(`한글 이름 확인 완료 · ${converted}명 한글 표기 적용`,'ok');
+}
+
+const dict=[
+ {keys:['정밀의료','맞춤의료','개인맞춤의료','precision medicine'], kws:['precision medicine','personalized medicine','genomic medicine','precision oncology','pharmacogenomics']},
+ {keys:['노화','건강노화','geroscience','aging','노인의학'], kws:['geroscience','biology of aging','healthy aging','cellular senescence','hallmarks of aging','frailty','immunosenescence','aging biomarker']},
+ {keys:['재생의료','첨단재생','세포치료','유전자치료','줄기세포'], kws:['regenerative medicine','cell therapy','gene therapy','stem cell therapy','tissue engineering','cell and gene therapy']},
+ {keys:['우주','발사체','로켓','위성','우주수송'], kws:['launch vehicle','rocket propulsion','space transportation','reusable launch vehicle','liquid rocket engine','space launch system']},
+ {keys:['메탄엔진','메탄 엔진','메탄추진','메탄 추진'], kws:['methane rocket engine','LOX methane propulsion','liquid methane rocket engine','methalox propulsion','rocket engine restart']},
+ {keys:['인공지능','ai','머신러닝','딥러닝','foundation model','파운데이션모델'], kws:['artificial intelligence','machine learning','deep learning','foundation model','neural networks']},
+ {keys:['신약','신약개발','drug discovery','약물'], kws:['drug discovery','AI drug discovery','drug development','molecular generation','drug target identification','toxicity prediction']},
+ {keys:['반도체','전력반도체','sic','gan','패키징'], kws:['semiconductor','power semiconductor','silicon carbide semiconductor','gallium nitride semiconductor','advanced semiconductor packaging','power electronics']},
+ {keys:['배터리','이차전지','전고체','리튬이온','battery'], kws:['secondary battery','lithium ion battery','solid state battery','battery materials','battery management system','electrochemical energy storage']},
+ {keys:['수소','연료전지','hydrogen'], kws:['hydrogen energy','green hydrogen','fuel cell','hydrogen production','water electrolysis','hydrogen storage']},
+ {keys:['양자','quantum'], kws:['quantum computing','quantum information','quantum communication','quantum sensing','quantum materials']},
+ {keys:['로봇','robot','휴머노이드','협동로봇'], kws:['robotics','humanoid robot','collaborative robot','robot control','autonomous robot','human robot interaction']},
+ {keys:['자율주행','자동차','모빌리티','autonomous driving'], kws:['autonomous driving','autonomous vehicle','intelligent transportation system','vehicle perception','vehicle control']},
+ {keys:['드론','무인기','uav'], kws:['unmanned aerial vehicle','drone technology','UAV control','autonomous aerial systems']},
+ {keys:['원자력','원전','소형모듈원자로','smr'], kws:['nuclear energy','small modular reactor','nuclear reactor safety','advanced nuclear reactor','nuclear fuel']},
+ {keys:['핵융합','fusion'], kws:['nuclear fusion','fusion energy','tokamak','plasma physics','fusion reactor']},
+ {keys:['탄소포집','ccus','탄소중립','carbon capture'], kws:['carbon capture utilization and storage','carbon capture','CO2 utilization','carbon neutrality','direct air capture']},
+ {keys:['기후','기후변화','climate'], kws:['climate change','climate modeling','climate adaptation','climate mitigation','climate risk']},
+ {keys:['태양광','태양전지','solar'], kws:['solar cell','photovoltaics','perovskite solar cell','solar energy conversion']},
+ {keys:['풍력','wind'], kws:['wind energy','wind turbine','offshore wind','wind power generation']},
+ {keys:['소재','신소재','첨단소재','materials'], kws:['advanced materials','materials science','functional materials','nanomaterials']},
+ {keys:['나노','nanotechnology','나노기술'], kws:['nanotechnology','nanomaterials','nanostructure','nanoelectronics']},
+ {keys:['바이오마커','biomarker'], kws:['biomarker','molecular biomarker','clinical biomarker','omics biomarker']},
+ {keys:['백신','vaccine','예방접종'], kws:['vaccine development','vaccinology','vaccine platform','mRNA vaccine','viral vector vaccine']},
+ {keys:['감염병','감염성질환','infectious'], kws:['infectious disease','emerging infectious disease','pathogen','antiviral therapy','epidemiology']},
+ {keys:['암','종양','cancer','oncology'], kws:['cancer research','oncology','tumor biology','cancer therapeutics','cancer immunotherapy']},
+ {keys:['뇌','신경','치매','neuroscience','알츠하이머'], kws:['neuroscience','neurodegenerative disease','Alzheimer disease','brain science','neuroimaging']},
+ {keys:['디지털헬스','디지털 헬스','digital health'], kws:['digital health','digital therapeutics','healthcare artificial intelligence','remote patient monitoring','medical informatics']},
+ {keys:['의료기기','medical device'], kws:['medical device','biomedical engineering','diagnostic device','biosensor','point of care testing']},
+ {keys:['유전체','genomics','오믹스','omics'], kws:['genomics','multiomics','transcriptomics','proteomics','precision medicine']},
+ {keys:['합성생물학','synthetic biology'], kws:['synthetic biology','metabolic engineering','genetic circuit','biofoundry']},
+ {keys:['사이버보안','보안','cybersecurity'], kws:['cybersecurity','information security','network security','cryptography','zero trust']},
+ {keys:['6g','통신','이동통신','무선통신'], kws:['6G communication','wireless communication','mobile communication','terahertz communication','massive MIMO']},
+ {keys:['광학','포토닉스','photonics'], kws:['photonics','optical engineering','integrated photonics','silicon photonics','laser technology']},
+ {keys:['디스플레이','oled','microled'], kws:['display technology','OLED','microLED','flexible display','quantum dot display']}
+];
+function esc(s=''){return String(s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
+function setStep(n){state.step=n;saveSession();render()}
+function renderRail(){ $('#rail').innerHTML=STEPS.map((s,i)=>`<div class="step ${i===state.step?'active':''} ${i<state.step?'done':''}"><b>${i<state.step?'✓':i+1}</b>${s}</div>`).join('') }
+function suggestKeywords(topic){
+  const clean=String(topic||'').trim();
+  const low=clean.toLowerCase();
+  let out=[];
+
+  // 1) 분야 사전에서 입력 주제와 일치하는 학술용어 구성
+  dict.forEach(d=>{
+    if(d.keys.some(k=>low.includes(k.toLowerCase()))) out.push(...d.kws);
+  });
+
+  // 2) 사용자가 직접 쓴 영문 학술용어가 있으면 유지
+  const english=(clean.match(/[A-Za-z][A-Za-z0-9+&/\- ]{2,}/g)||[])
+    .map(x=>x.trim().replace(/\s+/g,' '))
+    .filter(x=>x.length>=3);
+  out.push(...english);
+
+  // 3) 사전에 없는 주제도 이전 주제 키워드를 재사용하지 않고
+  //    실제 입력문 자체를 검색어로 반드시 포함
+  if(clean && !/[가-힣]/.test(clean)) out.unshift(clean);
+
+  // 너무 긴 자연어 문장은 OpenAlex 검색용으로 앞부분도 보조 검색
+  if(clean.length>45){
+    const short=clean
+      .replace(/전문가|연구자|찾고 싶다|찾고자|관련|분야|연구/g,' ')
+      .replace(/\s+/g,' ')
+      .trim()
+      .slice(0,80);
+    if(short) out.unshift(short);
+  }
+
+  return [...new Set(out.filter(Boolean))].slice(0,6);
+}
+function view0(){return `<div class="dochead"><h1>STEP 1 · 전문가 검색 조건 입력</h1><p>연구주제와 검색 키워드를 바탕으로 OpenAlex의 실제 논문·저자 데이터를 검색하여 전문가 후보를 구성합니다.</p></div>
+<div class="field"><label>사업·연구명</label><input id="project" value="${esc(state.project.project)}" placeholder="예: 국립건강노화연구소 R&D 로드맵 수립"></div>
+<div class="field"><label>전문가를 찾고자 하는 연구주제 <span class="hint">가능하면 핵심 영문 학술용어도 함께 입력</span></label><textarea id="topic" placeholder="예: 노화생물학, Geroscience, healthy aging 분야 전문가">${esc(state.project.topic)}</textarea></div>
+<div class="grid2">
+<div class="field"><label>검색기간</label><select id="period">${[3,5,10,15].map(n=>`<option value="${n}" ${state.project.period==n?'selected':''}>최근 ${n}년</option>`).join('')}</select></div>
+<div class="field"><label>희망 전문가 수</label><select id="count">${[10,20,30,50].map(n=>`<option ${state.project.count==n?'selected':''}>${n}</option>`).join('')}</select></div>
+<div class="field"><label>전문가 범위</label><select id="scope"><option value="KR" ${state.project.scope==='KR'?'selected':''}>국내 소속 연구자</option><option value="ALL" ${state.project.scope==='ALL'?'selected':''}>국내 + 해외</option></select></div>
+<div class="field"><label>1차 최소 관련논문 수</label><select id="minPub">${[1,2,3,5].map(n=>`<option ${state.project.minPub==n?'selected':''}>${n}</option>`).join('')}</select></div>
+<div class="field"><label>키워드당 검색 논문 수</label><select id="perKeyword">${[25,50,75,100].map(n=>`<option ${state.project.perKeyword==n?'selected':''}>${n}</option>`).join('')}</select></div>
+</div>
+<div class="field"><label>OpenAlex API Key <span class="hint">선택 입력 · 무료 발급 가능 · 이 브라우저에서만 사용</span></label><input id="apiKey" type="password" autocomplete="off" placeholder="API 키가 있다면 입력 (없으면 공용 무료 한도 사용)" value="${esc(state.apiKey||'')}"><div class="muted" style="font-size:12px;margin-top:6px">API 키 발급: <a href="https://openalex.org/settings/api" target="_blank" rel="noopener">OpenAlex 설정 페이지</a> · 공용 무료 한도 소진 시 키가 필요할 수 있습니다.</div></div>
+<div class="alert">현재 MVP에서는 <b>후보를 너무 일찍 탈락시키지 않도록 최소 관련논문 1편</b>을 기본값으로 사용합니다. 이후 관련논문 수·최근성·인용·연구기간으로 다시 점수화합니다.</div>
+<div class="foot"><span class="muted" style="font-size:12px">다음 단계에서 검색 키워드를 확인·수정할 수 있습니다.</span><button class="btn" id="next0">검색 키워드 구성 →</button></div>`}
+function capture0(){state.project.project=$('#project').value.trim();state.project.topic=$('#topic').value.trim();state.project.period=+$('#period').value;state.project.count=+$('#count').value;state.project.scope=$('#scope').value;state.project.minPub=+$('#minPub').value;state.project.perKeyword=+$('#perKeyword').value;state.apiKey=$('#apiKey').value.trim();saveSession()}
+function view1(){return `<div class="dochead"><h1>STEP 2 · 검색 키워드 검토</h1><p>STEP 1의 연구주제를 기준으로 검색 키워드를 새로 구성했습니다. 주제를 변경하면 이 목록도 자동으로 변경되며, 검색 전 직접 수정할 수 있습니다.</p></div>
+<div class="alert green">검색 방식 개선: <b>키워드별 ${state.project.perKeyword}편 검색 → 논문 ID 중복제거 → 저자 ID 통합</b></div>
+<div class="keywordbox" id="keywordbox">${state.keywords.map((k,i)=>`<div class="kwrow"><input value="${esc(k)}" data-i="${i}" class="kwinput"><button data-del="${i}" title="삭제">×</button></div>`).join('')}</div>
+<div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn secondary small addkw" id="addkw">+ 키워드 추가</button><button class="btn secondary small" id="regenkw">↻ 입력 주제로 키워드 다시 구성</button></div>
+<div class="alert">한국어만 입력하면 OpenAlex 검색 성능이 낮아질 수 있습니다. 가능하면 실제 학계에서 사용하는 <b>영문 학술용어</b>를 4~8개 정도 사용하는 것이 좋습니다.</div>
+<div class="alert" style="margin-top:14px"><b>실제 데이터 검색</b> · 선택한 키워드를 OpenAlex에서 각각 검색하고 실제 논문과 저자를 기반으로 전문가 후보를 구성합니다.</div>
+<div class="foot"><button class="btn secondary" id="back1">← 입력 수정</button><div><button class="btn" id="demoSearch">OpenAlex 실제 검색 →</button></div></div>`}
+function view2(){return `<div class="dochead"><h1>STEP 3 · OpenAlex 실제 검색</h1><p>선택한 키워드를 개별 검색하여 논문과 연구자를 수집합니다.</p></div><div class="progress"><div class="bar" id="bar"></div></div><div class="log" id="log"></div><div id="retryArea"></div>`}
+function view3(){return `<div class="dochead"><h1>STEP 4 · 연구자 통합 및 점수화</h1><p>OpenAlex Author ID 기준으로 저자를 합치고, 관련 실적을 기준으로 후보를 평가했습니다.</p></div>
+<div class="summary"><div><div class="num">${state.stats.works}</div><div class="lbl">중복제거 논문</div></div><div><div class="num">${state.stats.authors}</div><div class="lbl">추출 저자</div></div><div><div class="num">${state.stats.passed}</div><div class="lbl">1차 필터 통과</div></div><div><div class="num">${state.candidates.length}</div><div class="lbl">정렬 후보</div></div></div>
+<div class="alert"><b>검색 결과의 논문·저자·소속·피인용 정보는 OpenAlex에서 실시간 조회한 실제 데이터입니다.</b><br>국내 연구자는 OpenAlex에 등록된 한글 대체명이 확인되는 경우 한글명을 우선 표시합니다.<br>Expert Score는 후보 간 비교를 위한 프로토타입 정량지표로, 관련논문 40 + 최근성 25 + 지속성 15 + 인용영향력 10 + 키워드 커버리지 10으로 구성됩니다.</div>
+${resultTable()}
+<div class="foot"><button class="btn secondary" id="back3">← 키워드 수정</button><button class="btn" id="next3">최종 Pool 검토 →</button></div>`}
+function view4(){const n=Math.min(state.project.count,state.candidates.length);return `<div class="dochead"><h1>STEP 5 · 전문가 후보 Pool</h1><p>상위 ${n}명을 기본 SELECTED로 지정했습니다. 전문가명을 누르면 실제 OpenAlex 근거 논문과 연구자 프로필을 확인할 수 있습니다.</p></div>
+<div class="summary"><div><div class="num">${state.stats.works}</div><div class="lbl">검색 논문</div></div><div><div class="num">${state.stats.authors}</div><div class="lbl">후보 연구자</div></div><div><div class="num">${state.candidates.filter(x=>x.status==='SELECTED').length}</div><div class="lbl">SELECTED</div></div><div><div class="num">${state.keywords.length}</div><div class="lbl">검색 키워드</div></div></div>${resultTable()}
+<div class="foot"><button class="btn secondary" id="back4">← 검색조건 변경</button><div><button class="btn secondary" id="csv">CSV 저장</button> <button class="btn" id="xlsx">Excel 저장</button></div></div>`}
+function resultTable(){return `<div class="tablewrap"><table class="table"><thead><tr><th>순위</th><th>전문가</th><th>소속</th><th>국가</th><th>관련논문</th><th>관련기간</th><th>관련인용</th><th>매칭 키워드</th><th>Score</th><th>상태</th></tr></thead><tbody>${state.candidates.map((c,i)=>`<tr><td>${i+1}</td><td class="name" data-open="${i}">${esc(c.name)}${c.name_original?`<div class="muted" style="font-size:10px;margin-top:3px">${esc(c.name_original)}</div>`:""}</td><td>${esc(c.institution||'-')}</td><td>${esc(c.country||'-')}</td><td>${c.relevant_publications}</td><td>${c.first_year||'-'}–${c.last_year||'-'}</td><td>${c.citations}</td><td>${esc([...c.keywords].slice(0,3).join(', '))}</td><td class="score">${c.score}</td><td><span class="tag ${c.status==='SELECTED'?'selected':'candidate'}">${c.status}</span></td></tr>`).join('')}</tbody></table></div>`}
+function render(){renderRail(); const m=$('#main');m.innerHTML=state.step===0?view0():state.step===1?view1():state.step===2?view2():state.step===3?view3():view4();bind();if(state.step===2)renderLogs()}
+function bind(){if(state.step===0){$('#next0').onclick=()=>{capture0();if(!state.project.topic){alert('연구주제를 입력해 주세요.');return}
+const normalizedTopic=state.project.topic.trim();
+if(state.keywordSourceTopic!==normalizedTopic){
+  state.keywords=suggestKeywords(normalizedTopic);
+  state.keywordSourceTopic=normalizedTopic;
+  saveSession();
+}
+if(!state.keywords.length)state.keywords=[normalizedTopic];
+setStep(1)}}
+if(state.step===1){$$('.kwinput').forEach(x=>x.oninput=e=>{state.keywords[+e.target.dataset.i]=e.target.value;saveSession()});$$('[data-del]').forEach(b=>b.onclick=()=>{state.keywords.splice(+b.dataset.del,1);saveSession();render()});$('#addkw').onclick=()=>{state.keywords.push('');saveSession();render()};const rg=$('#regenkw');if(rg)rg.onclick=()=>{state.keywords=suggestKeywords(state.project.topic);state.keywordSourceTopic=state.project.topic.trim();saveSession();render()};$('#back1').onclick=()=>setStep(0);const ds=$('#demoSearch');if(ds)ds.onclick=()=>startSearch()}
+if(state.step===3){bindOpen();$('#back3').onclick=()=>setStep(1);$('#next3').onclick=()=>setStep(4)}
+if(state.step===4){bindOpen();$('#back4').onclick=()=>setStep(0);$('#csv').onclick=exportCSV;$('#xlsx').onclick=exportExcel}
+}
+function addLog(msg,cls=''){state.logs.push({msg,cls});renderLogs()}
+function renderLogs(){const l=$('#log');if(!l)return;l.innerHTML=state.logs.map(x=>`<div class="${x.cls}">▸ ${esc(x.msg)}</div>`).join('');l.scrollTop=l.scrollHeight}
+function progress(p){const b=$('#bar');if(b)b.style.width=Math.max(0,Math.min(100,p))+'%'}
+function apiSearchUrl(keyword,from,to,per){
+  const u=new URL('/api/openalex/works');
+  u.searchParams.set('search',keyword);
+  u.searchParams.set('filter',`from_publication_date:${from},to_publication_date:${to}`);
+  u.searchParams.set('sort','relevance_score:desc');
+  u.searchParams.set('per_page',String(Math.min(100,per)));
+  u.searchParams.set('select','id,title,display_name,publication_year,publication_date,cited_by_count,doi,authorships,primary_topic');
+  if(state.apiKey)u.searchParams.set('api_key',state.apiKey);
+  return u.toString();
+}
+async function fetchJSON(url){
+  const ctl=new AbortController();
+  const tm=setTimeout(()=>ctl.abort(),30000);
+  try{
+    const r=await fetch(url,{signal:ctl.signal,headers:{'Accept':'application/json'}});
+    const data=await r.json().catch(()=>({}));
+    if(!r.ok){const msg=data?.message||data?.error||'요청 실패';const er=new Error(`HTTP ${r.status}: ${typeof msg==='string'?msg:JSON.stringify(msg)}`);er.status=r.status;throw er;}
+    return data;
+  }catch(e){
+    if(e.name==='AbortError') throw new Error('검색 응답시간이 초과되었습니다.');
+    if(e instanceof TypeError)throw new Error('웹사이트 검색 서버에 연결하지 못했습니다. 잠시 후 다시 시도해 주세요.');
+    throw e;
+  }finally{clearTimeout(tm)}
+}
+async function startSearch(){
+  state.keywords=state.keywords.map(x=>x.trim()).filter(Boolean);
+  if(!state.keywords.length){alert('검색 키워드를 1개 이상 입력해 주세요.');return}
+  setPendingSearch(true);state.step=2;saveSession({step:2});
+  state.logs=[];
+  state.works=new Map();
+  state.authors=new Map();
+  state.candidates=[];
+  state.stats={works:0,authors:0,passed:0};
+  render();
+
+  const from=`${CURRENT_YEAR-state.project.period}-01-01`;
+  const to=`${CURRENT_YEAR}-12-31`;
+
+  addLog('OpenAlex 실제 학술데이터 검색을 시작합니다. (웹 서버 연동)');
+  addLog(`검색기간: ${from} ~ ${to}`);
+  let success=0;let fatalError='';
+
+  const searchKeywords=state.keywords.slice(0,5);
+  if(state.keywords.length>5)addLog('요청 한도 보호를 위해 상위 5개 키워드만 검색합니다.');
+  for(let i=0;i<searchKeywords.length;i++){
+    const kw=searchKeywords[i];
+    addLog(`[${kw}] 논문 검색 중…`);
+    try{
+      const j=await fetchJSON(apiSearchUrl(kw,from,to,state.project.perKeyword));
+      const rs=j.results||[];
+      success++;
+      const total=j.meta?.count!=null?Number(j.meta.count).toLocaleString():'-';
+      addLog(`[${kw}] 실제 논문 ${rs.length}건 수집 · 전체 매칭 ${total}건`,'ok');
+      rs.forEach(w=>ingestWork(w,kw));
+    }catch(e){
+      addLog(`[${kw}] 검색 실패: ${e.message}`,'err');
+      if([400,401,402,403,429].includes(e.status)){fatalError=e.message;addLog('API 인증 또는 요청 한도 문제로 추가 검색을 중단합니다.','err');break;}
+    }
+    progress((i+1)/searchKeywords.length*72);
+    await new Promise(r=>setTimeout(r,1100));
+  }
+
+  if(!success || state.works.size===0){
+    setPendingSearch(false);saveSession({step:2});
+    addLog('실제 검색 결과를 가져오지 못했습니다. 가상 데이터로 대체하지 않습니다.','err');
+    const a=$('#retryArea');
+    if(a)a.innerHTML=`<div class="alert red"><b>OpenAlex 검색 실패</b><br>
+    ${esc(fatalError||'요청 실패: 브라우저 개발자도구(F12)에서 네트워크 오류를 확인해 주세요.')}<br>웹사이트에서 실행하면 검색 서버를 통해 OpenAlex에 연결됩니다.</div>
+    <button class="btn secondary" id="retrySearch">다시 검색</button>
+    <button class="btn secondary" id="editKeyword">← 키워드 수정</button>`;
+    const r=$('#retrySearch'); if(r)r.onclick=startSearch;
+    const e=$('#editKeyword'); if(e)e.onclick=()=>setStep(1);
+    return;
+  }
+
+  addLog(`논문 ID 중복 제거 후 ${state.works.size}편`,'ok');
+  addLog(`실제 저자 ${state.authors.size}명 추출`,'ok');
+  progress(82);
+
+  aggregate();
+  progress(86);
+  if(state.apiKey)await enrichKoreanNames();else addLog('추가 API 요청을 줄이기 위해 한글 이름 보완 조회를 생략했습니다.','ok');
+  progress(100);
+  addLog(`필터 통과 ${state.stats.passed}명 · 전문가 점수화 완료`,'ok');
+  setPendingSearch(false);
+  saveSession({step:3});
+  setTimeout(()=>setStep(3),600);
+}
+function ingestWork(w,kw){if(!w?.id)return;if(!state.works.has(w.id))state.works.set(w.id,w);(w.authorships||[]).forEach(a=>{if(!a?.author?.id)return;const aid=a.author.id;let au=state.authors.get(aid);if(!au){au={id:aid,name:a.author.display_name||'미상',workIds:new Set(),keywords:new Set(),institutions:new Map()};state.authors.set(aid,au)}au.workIds.add(w.id);au.keywords.add(kw);(a.institutions||[]).forEach(ins=>{if(ins?.id)au.institutions.set(ins.id,ins)})})}
+function aggregate(){const arr=[];for(const au of state.authors.values()){const works=[...au.workIds].map(id=>state.works.get(id)).filter(Boolean);const years=works.map(w=>w.publication_year).filter(Boolean);const citations=works.reduce((s,w)=>s+(w.cited_by_count||0),0);const insts=[...au.institutions.values()];let preferred=insts.find(x=>x.country_code==='KR')||insts[0]||null;const country=preferred?.country_code||'';if(state.project.scope==='KR' && !insts.some(x=>x.country_code==='KR'))continue;if(works.length<state.project.minPub)continue;arr.push({id:au.id,name:au.name,institution:preferred?.display_name||'',country:country,relevant_publications:works.length,citations,first_year:years.length?Math.min(...years):null,last_year:years.length?Math.max(...years):null,keywords:au.keywords,works:[...works].sort((a,b)=>(b.cited_by_count||0)-(a.cited_by_count||0)),status:'CANDIDATE'})}
+const maxP=Math.max(1,...arr.map(x=>x.relevant_publications)),maxC=Math.max(1,...arr.map(x=>x.citations));arr.forEach(c=>{const recent=c.works.filter(w=>(w.publication_year||0)>=CURRENT_YEAR-2).length;const span=c.first_year&&c.last_year?c.last_year-c.first_year+1:1;const kwCoverage=Math.min(1,c.keywords.size/Math.max(1,state.keywords.length));const scRel=Math.round(Math.min(1,c.relevant_publications/maxP)*40);const scRecent=Math.round(Math.min(1,recent/5)*25);const scSpan=Math.round(Math.min(1,span/state.project.period)*15);const scCit=Math.round(Math.sqrt(c.citations/maxC)*10);const scFocus=Math.round(kwCoverage*10);c.score=scRel+scRecent+scSpan+scCit+scFocus;c.scoreParts={scRel,scRecent,scSpan,scCit,scFocus}});arr.sort((a,b)=>b.score-a.score||b.relevant_publications-a.relevant_publications||b.citations-a.citations);arr.slice(0,state.project.count).forEach(x=>x.status='SELECTED');state.candidates=arr.slice(0,Math.max(state.project.count*3,60));state.stats={works:state.works.size,authors:state.authors.size,passed:arr.length}}
+function bindOpen(){$$('[data-open]').forEach(x=>x.onclick=()=>openPanel(+x.dataset.open))}
+function openPanel(i){const c=state.candidates[i];const p=$('#panel'),o=$('#overlay');p.innerHTML=`<div class="panelhead"><button class="close" id="close">×</button><div style="color:var(--gold);font-size:11px">전문가 상세 근거</div><div style="font-size:20px;font-weight:800;margin-top:5px">${esc(c.name)}</div>${c.name_original?`<div style="font-size:11px;color:#8794aa;margin-top:3px">${esc(c.name_original)}</div>`:""}<div style="font-size:12px;color:#aab5c7">${esc(c.institution||'소속 미상')}</div></div><div class="panelbody"><div class="kv"><span>OpenAlex</span>${`<a target="_blank" href="https://openalex.org/${c.id.split("/").pop()}">프로필 보기 ↗</a>`}</div><div class="kv"><span>관련논문</span><b>${c.relevant_publications}편</b></div><div class="kv"><span>관련 인용수</span><b>${c.citations}</b></div><div class="kv"><span>관련 연구기간</span><b>${c.first_year||'-'}–${c.last_year||'-'}</b></div><div class="section">Score 근거</div><div class="kv"><span>관련논문 실적</span><b>${c.scoreParts.scRel}/40</b></div><div class="kv"><span>최근 활동성</span><b>${c.scoreParts.scRecent}/25</b></div><div class="kv"><span>연구 지속성</span><b>${c.scoreParts.scSpan}/15</b></div><div class="kv"><span>인용 영향력</span><b>${c.scoreParts.scCit}/10</b></div><div class="kv"><span>키워드 커버리지</span><b>${c.scoreParts.scFocus}/10</b></div><div class="section">대표 논문</div>${c.works.slice(0,5).map(w=>`<div class="paper"><b>${esc((w.title||w.display_name)||'제목 없음')}</b><div class="muted">${w.publication_year||'-'} · 피인용 ${w.cited_by_count||0}</div>${`<a target="_blank" href="https://openalex.org/${w.id.split("/").pop()}">OpenAlex에서 보기 ↗</a>`}</div>`).join('')}<div class="section">검토 상태</div><select id="status"><option ${c.status==='SELECTED'?'selected':''}>SELECTED</option><option ${c.status==='CANDIDATE'?'selected':''}>CANDIDATE</option><option>REVIEW</option><option>EXCLUDED</option></select></div>`;o.classList.add('open');p.classList.add('open');$('#close').onclick=closePanel;o.onclick=closePanel;$('#status').onchange=e=>{c.status=e.target.value;render();openPanel(i)}}
+function closePanel(){$('#overlay').classList.remove('open');$('#panel').classList.remove('open')}
+function exportRows(){const s=state.candidates.filter(x=>x.status==='SELECTED');return (s.length?s:state.candidates).map((c,i)=>({'No.':i+1,'성명':c.name,'소속기관':c.institution,'국가':c.country,'관련논문수':c.relevant_publications,'관련연구기간':`${c.first_year||''}-${c.last_year||''}`,'관련인용수':c.citations,'매칭키워드':[...c.keywords].join('; '),'Expert Score':c.score,'대표논문1':(c.works[0]?.title||c.works[0]?.display_name)||'','대표논문2':(c.works[1]?.title||c.works[1]?.display_name)||'','대표논문3':(c.works[2]?.title||c.works[2]?.display_name)||'','OpenAlex URL':`https://openalex.org/${c.id.split('/').pop()}`,'검토상태':c.status}))}
+function exportCSV(){const rows=exportRows();if(!rows.length)return;const hs=Object.keys(rows[0]);const q=v=>'"'+String(v??'').replace(/"/g,'""')+'"';const csv='\ufeff'+[hs.map(q).join(','),...rows.map(r=>hs.map(h=>q(r[h])).join(','))].join('\n');const blob=new Blob([csv],{type:'text/csv;charset=utf-8'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=(state.project.project||'전문가Pool')+'_전문가후보.csv';a.click();URL.revokeObjectURL(a.href)}
+function exportExcel(){if(window.XLSX){const ws=XLSX.utils.json_to_sheet(exportRows());const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'전문가Pool');XLSX.writeFile(wb,(state.project.project||'전문가Pool')+'_전문가후보.xlsx')}else{exportCSV();alert('Excel 라이브러리를 불러오지 못해 CSV로 저장했습니다.')}}
+const s=document.createElement('script');s.src='https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';s.async=true;document.head.appendChild(s);
+restoreSession();
+render();
+if(hasPendingSearch() && Array.isArray(state.keywords) && state.keywords.filter(Boolean).length){
+  setTimeout(()=>{
+    state.step=2;
+    saveSession({step:2});
+    render();
+    startSearch();
+  },700);
+}
+})();
+</script>
+
+
+
+</body>
+</html>
